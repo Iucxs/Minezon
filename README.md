@@ -1,1 +1,1 @@
-# Minecrazon
+Dieses Tool dient dazu, ein fertiges System für freundschaftsserver oder kleine SMP Server bereit zu stelen.
