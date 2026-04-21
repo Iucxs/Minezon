@@ -3,283 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MineZon Pro</title>
+    <title>MineZon Pro v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { colors: { mcgreen: '#39ff14', darkbg: '#0f172a', cardbg: '#1e293b' } } }
-        }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { mcgreen: '#39ff14', cardbg: '#1e293b' } } } }
     </script>
     <style>
         body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .glow-text { text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); }
         .nav-btn.active { border-left: 4px solid #39ff14; background: rgba(255, 255, 255, 0.05); }
-        /* Scrollbar für Item-Listen */
-        .item-list::-webkit-scrollbar { width: 4px; }
-        .item-list::-webkit-scrollbar-thumb { background: #39ff14; border-radius: 4px; }
+        .role-Admin { color: #ef4444; font-weight: bold; font-size: 0.7rem; border: 1px solid #ef4444; padding: 1px 4px; border-radius: 4px; }
+        .role-VIP { color: #f59e0b; font-weight: bold; font-size: 0.7rem; border: 1px solid #f59e0b; padding: 1px 4px; border-radius: 4px; }
+        .role-User { color: #9ca3af; font-size: 0.7rem; border: 1px solid #4b5563; padding: 1px 4px; border-radius: 4px; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen p-4 flex justify-center items-center">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md text-center transition-all">
+    <!-- AUTHENTIFIZIERUNG -->
+    <div id="auth-screen" class="glass-panel p-8 rounded-2xl w-full max-w-md text-center">
         <h1 class="text-4xl font-extrabold text-mcgreen mb-2 glow-text"><i class="fa-solid fa-cubes"></i> MineZon</h1>
-        <p class="text-gray-400 mb-8">Bedrock Economy System</p>
-        <button onclick="createServer()" class="w-full bg-mcgreen text-black font-bold py-3 rounded-lg hover:bg-green-400 mb-4">Serverraum starten</button>
+        <p class="text-gray-400 mb-6">Willkommen! Bitte logge dich ein.</p>
+        
+        <div id="login-form" class="flex flex-col gap-3">
+            <input type="email" id="log_email" placeholder="E-Mail" class="bg-gray-800 p-3 rounded text-white w-full">
+            <input type="password" id="log_pw" placeholder="Passwort" class="bg-gray-800 p-3 rounded text-white w-full">
+            <button onclick="login()" class="bg-blue-600 text-white font-bold py-3 rounded mt-2 hover:bg-blue-500">Einloggen</button>
+            <p class="text-sm text-gray-400 mt-2 cursor-pointer hover:text-white" onclick="toggleAuth('register')">Noch keinen Account? Registrieren</p>
+        </div>
+
+        <div id="register-form" class="hidden flex flex-col gap-3">
+            <input type="text" id="reg_name" placeholder="Minecraft Name" class="bg-gray-800 p-3 rounded w-full">
+            <input type="email" id="reg_email" placeholder="E-Mail" class="bg-gray-800 p-3 rounded w-full">
+            <input type="password" id="reg_pw" placeholder="Passwort" class="bg-gray-800 p-3 rounded w-full">
+            <button onclick="register()" class="bg-mcgreen text-black font-bold py-3 rounded mt-2 hover:bg-green-400">Registrieren</button>
+            <p class="text-sm text-gray-400 mt-2 cursor-pointer hover:text-white" onclick="toggleAuth('login')">Zurück zum Login</p>
+        </div>
+
+        <div id="verify-form" class="hidden flex flex-col gap-3 mt-4 border-t border-gray-600 pt-4">
+            <p class="text-xs text-yellow-400">Ein Code wurde gesendet (Siehe Server Konsole).</p>
+            <input type="text" id="ver_code" placeholder="6-stelliger Code" class="bg-gray-800 p-3 rounded w-full text-center tracking-widest text-xl">
+            <button onclick="verify()" class="bg-purple-600 text-white font-bold py-3 rounded hover:bg-purple-500">Verifizieren</button>
+        </div>
+    </div>
+
+    <!-- SERVER AUSWAHL -->
+    <div id="server-screen" class="hidden glass-panel p-8 rounded-2xl w-full max-w-md text-center">
+        <h2 class="text-2xl font-bold text-white mb-2">Raumauswahl</h2>
+        <p class="text-gray-400 mb-6 text-sm" id="welcome-text"></p>
+        <button onclick="createServer()" class="w-full bg-mcgreen text-black font-bold py-3 rounded hover:bg-green-400 mb-4">Neuen Raum erstellen</button>
         <div class="flex items-center my-4"><hr class="flex-grow border-gray-600"><span class="px-3 text-gray-500 text-sm">ODER</span><hr class="flex-grow border-gray-600"></div>
-        <input type="text" id="server-code-input" placeholder="Server Code..." class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 mb-4 text-center text-xl uppercase">
-        <button onclick="joinServer()" class="w-full bg-blue-600 font-bold py-3 rounded-lg hover:bg-blue-500">Beitreten</button>
+        <input type="text" id="server-code-input" placeholder="Raum Code..." class="w-full bg-gray-800 border border-gray-600 rounded px-4 py-3 mb-4 text-center text-xl uppercase">
+        <button onclick="joinServer()" class="w-full bg-blue-600 font-bold py-3 rounded hover:bg-blue-500">Raum Beitreten</button>
     </div>
 
     <!-- MAIN DASHBOARD -->
-    <div id="dashboard" class="hidden w-full max-w-7xl flex flex-col md:flex-row gap-6">
-        
+    <div id="dashboard" class="hidden w-full max-w-7xl flex flex-col md:flex-row gap-6 h-[90vh]">
         <!-- SIDEBAR -->
-        <div class="glass-panel w-full md:w-64 rounded-2xl p-6 flex flex-col gap-2 h-fit shrink-0">
-            <h2 class="text-2xl font-bold text-mcgreen glow-text mb-4"><i class="fa-solid fa-cubes"></i> MineZon</h2>
-            <div class="bg-gray-800 p-2 rounded-lg text-center border border-gray-700 mb-4">
-                <span id="display-code" class="text-xl font-bold text-white tracking-widest">---</span>
+        <div class="glass-panel w-full md:w-64 rounded-2xl p-6 flex flex-col gap-1 h-full shrink-0 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-mcgreen glow-text mb-2"><i class="fa-solid fa-cubes"></i> MineZon</h2>
+            <div class="bg-gray-800 p-2 rounded text-center border border-gray-700 mb-4 font-mono text-xl tracking-widest" id="display-code">---</div>
+            
+            <button onclick="switchTab('marketplace')" id="nav-marketplace" class="nav-btn active text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-store w-6"></i> Markt</button>
+            <button onclick="switchTab('economy')" id="nav-economy" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-chart-line w-6"></i> Graph</button>
+            <button onclick="switchTab('messages')" id="nav-messages" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-envelope w-6"></i> Postfach</button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-user w-6"></i> Profil</button>
+            <button onclick="switchTab('admin')" id="nav-admin" class="hidden nav-btn text-left px-4 py-3 rounded text-red-400 hover:bg-gray-800"><i class="fa-solid fa-hammer w-6"></i> Admin</button>
+
+            <!-- Custom Currency Info -->
+            <div id="currency-widget" class="hidden mt-4 bg-yellow-900/30 border border-yellow-700 p-3 rounded-lg text-center">
+                <p class="text-xs text-yellow-500">Guthaben</p>
+                <p class="text-xl font-bold text-yellow-400"><span id="my-balance">0</span> <span id="currency-name" class="text-sm">Coins</span></p>
             </div>
-            
-            <button onclick="switchTab('marketplace')" id="nav-marketplace" class="nav-btn active text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-store w-6"></i> Marktplatz</button>
-            <button onclick="switchTab('bounties')" id="nav-bounties" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-clipboard-list w-6"></i> Schwarzes Brett</button>
-            <button onclick="switchTab('economy')" id="nav-economy" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-chart-line w-6"></i> Wirtschaft</button>
-            
-            <!-- Smart Navi im Menü -->
-            <div class="mt-4 pt-4 border-t border-gray-700">
-                <h3 class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-location-crosshairs"></i> Meine Position</h3>
-                <div class="flex gap-1">
-                    <input type="number" id="my_x" placeholder="X" class="w-1/3 bg-gray-800 rounded p-1 text-center text-sm" onchange="loadShops()">
-                    <input type="number" id="my_y" placeholder="Y" class="w-1/3 bg-gray-800 rounded p-1 text-center text-sm" onchange="loadShops()">
-                    <input type="number" id="my_z" placeholder="Z" class="w-1/3 bg-gray-800 rounded p-1 text-center text-sm" onchange="loadShops()">
-                </div>
+
+            <!-- Online Players -->
+            <div class="mt-auto pt-4 border-t border-gray-700">
+                <h3 class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-users"></i> Aktiv im Raum</h3>
+                <div id="player-list" class="flex flex-col gap-2 text-sm max-h-32 overflow-y-auto"></div>
             </div>
         </div>
 
-        <!-- MAIN CONTENT AREA -->
-        <div class="flex-grow w-full">
+        <!-- CONTENT -->
+        <div class="flex-grow w-full h-full overflow-y-auto bg-cardbg rounded-2xl p-6 border border-gray-700">
             
-            <!-- VIEW: MARKETPLACE -->
-            <div id="view-marketplace" class="flex flex-col gap-4">
-                <div class="flex justify-between items-center bg-cardbg p-4 rounded-xl border border-gray-700">
-                    <h2 class="text-xl font-bold">Shops</h2>
-                    <button onclick="openModal('shop-modal')" class="bg-mcgreen text-black px-4 py-2 rounded font-bold text-sm">+ Neuer Shop</button>
+            <!-- MARKTPLATZ -->
+            <div id="view-marketplace">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                    <h2 class="text-2xl font-bold">Marktplatz</h2>
+                    <input type="text" id="search-bar" placeholder="Suchen..." onkeyup="filterShops()" class="bg-gray-800 px-4 py-2 rounded-lg border border-gray-600 w-full md:w-64">
+                    <button onclick="openModal('shop-modal')" class="bg-mcgreen text-black px-4 py-2 rounded font-bold whitespace-nowrap">+ Shop erstellen</button>
                 </div>
-                <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             </div>
 
-            <!-- VIEW: SCHWARZES BRETT -->
-            <div id="view-bounties" class="hidden flex flex-col gap-4">
-                <div class="flex justify-between items-center bg-cardbg p-4 rounded-xl border border-gray-700 border-l-4 border-l-red-500">
-                    <h2 class="text-xl font-bold text-red-500">Schwarzes Brett (Aufträge)</h2>
-                    <button onclick="openModal('bounty-modal')" class="bg-red-600 text-white px-4 py-2 rounded font-bold text-sm">+ Auftrag erstellen</button>
+            <!-- GRAPH -->
+            <div id="view-economy" class="hidden flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-blue-400">Preis-Entwicklung</h2>
+                    <select id="chart-item-select" onchange="updateChartDisplay()" class="bg-gray-800 px-4 py-2 rounded border border-gray-600">
+                        <option value="all">Alle Items anzeigen</option>
+                    </select>
                 </div>
-                <div id="bounties-list" class="flex flex-col gap-3"></div>
+                <div class="flex-grow relative"><canvas id="economyChart"></canvas></div>
             </div>
 
-            <!-- VIEW: WIRTSCHAFT (GRAPH) -->
-            <div id="view-economy" class="hidden flex flex-col gap-4">
-                <div class="bg-cardbg p-4 rounded-xl border border-gray-700 border-l-4 border-l-blue-500">
-                    <h2 class="text-xl font-bold text-blue-400">Preis-Entwicklung</h2>
-                    <p class="text-sm text-gray-400">Verfolge, wie sich die Preise (z.B. für Diamanten oder Mending) über die Zeit verändern.</p>
-                </div>
-                <div class="glass-panel p-4 rounded-xl w-full h-[400px]">
-                    <canvas id="economyChart"></canvas>
+            <!-- NACHRICHTEN -->
+            <div id="view-messages" class="hidden">
+                <h2 class="text-2xl font-bold mb-4">Postfach</h2>
+                <div id="messages-list" class="flex flex-col gap-3"></div>
+            </div>
+
+            <!-- PROFIL -->
+            <div id="view-profile" class="hidden">
+                <h2 class="text-2xl font-bold mb-4">Mein Profil</h2>
+                <div class="max-w-md flex flex-col gap-4">
+                    <p>Name: <span id="prof-name" class="font-bold text-mcgreen"></span></p>
+                    <p>Rolle: <span id="prof-role"></span></p>
+                    <textarea id="prof-bio" placeholder="Etwas über dich..." class="bg-gray-800 p-3 rounded h-32"></textarea>
+                    <button onclick="updateProfile()" class="bg-blue-600 py-2 rounded font-bold hover:bg-blue-500">Speichern</button>
+                    <button onclick="logout()" class="bg-red-600 py-2 rounded font-bold mt-4 hover:bg-red-500">Ausloggen</button>
                 </div>
             </div>
+            <!-- ADMIN DASHBOARD -->
+            <div id="view-admin" class="hidden flex flex-col h-full">
+                <h2 class="text-2xl font-bold text-red-500 mb-4"><i class="fa-solid fa-hammer"></i> Admin Control Panel</h2>
+                
+                <div class="glass-panel p-6 rounded-xl border border-red-900/50 flex flex-col gap-4">
+                    <div class="bg-red-950/30 p-4 rounded border-l-4 border-red-500">
+                        <h3 class="font-bold text-white mb-1">Hallo Admin!</h3>
+                        <p class="text-sm text-gray-400">Du hast erweiterte Rechte. Auf dem Marktplatz siehst du nun bei <strong class="text-white">allen</strong> Shops einen roten "Löschen" Button, um unangemessene Inhalte zu entfernen.</p>
+                    </div>
+
+                    <!-- Hier können wir in Zukunft Admin-Funktionen hinzufügen -->
+                    <h3 class="font-bold text-gray-300 mt-4 border-b border-gray-700 pb-2">System-Verwaltung (Demnächst)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button class="bg-gray-800 text-gray-500 border border-gray-700 p-4 rounded cursor-not-allowed flex flex-col items-center gap-2">
+                            <i class="fa-solid fa-users fa-xl"></i> Benutzer verwalten
+                        </button>
+                        <button class="bg-gray-800 text-gray-500 border border-gray-700 p-4 rounded cursor-not-allowed flex flex-col items-center gap-2">
+                            <i class="fa-solid fa-server fa-xl"></i> Alle Räume verwalten
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
         </div>
     </div>
 
     <!-- MODAL: NEUER SHOP -->
     <div id="shop-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-        <div class="glass-panel p-6 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
-            <!-- Zurück Button (X) -->
-            <button onclick="closeModal('shop-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark fa-xl"></i></button>
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-xl text-mcgreen mb-4">Neuer Shop</h3>
+            <input type="text" id="s_name" placeholder="Shop Name" class="bg-gray-800 p-2 rounded w-full mb-3">
+            <label class="block text-xs text-gray-400 mb-1">Shop Bild (Optional)</label>
+            <input type="file" id="s_image_file" class="bg-gray-800 p-2 rounded w-full mb-3 text-sm">
             
-            <h3 class="font-bold text-xl text-mcgreen mb-4 border-b border-gray-700 pb-2">Neuen Shop erstellen</h3>
+            <div class="bg-gray-900 p-3 rounded-lg mb-3">
+                <button onclick="addShopItemField()" class="bg-gray-700 px-3 py-1 rounded text-sm mb-2 w-full">+ Item Reihe</button>
+                <div id="shop-items-container" class="flex flex-col gap-2"></div>
+            </div>
             
-            <div class="flex flex-col gap-4">
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="s_name" placeholder="Shop Name" class="bg-gray-800 p-2 rounded">
-                    <input type="text" id="s_owner" placeholder="Besitzer" class="bg-gray-800 p-2 rounded">
-                </div>
-                <input type="text" id="s_image" placeholder="Bild-URL (z.B. Imgur Link) - Optional" class="bg-gray-800 p-2 rounded w-full">
-                
-                <div class="bg-gray-900 p-3 rounded-lg border border-gray-700">
-                    <div class="flex justify-between items-center mb-2">
-                        <h4 class="font-bold text-sm text-gray-300">Angebote</h4>
-                        <button onclick="addShopItemField()" class="text-xs bg-gray-700 px-2 py-1 rounded">+ Item</button>
-                    </div>
-                    <div id="shop-items-container" class="flex flex-col gap-2">
-                        <!-- Dynamische Items -->
-                        <div class="flex gap-2 shop-item-row">
-                            <input type="text" placeholder="Item (z.B. Eisen)" class="w-1/2 bg-gray-800 p-2 rounded item-name">
-                            <input type="text" placeholder="Preis (z.B. 2 Dias)" class="w-1/3 bg-gray-800 p-2 rounded item-price text-yellow-400">
-                            <input type="number" placeholder="Zahl (für Graph)" class="w-1/4 bg-gray-800 p-2 rounded item-num" title="Nur die Zahl für den Graphen">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-2">
-                    <input type="number" id="s_x" placeholder="X Coord" class="w-1/3 bg-gray-800 p-2 rounded">
-                    <input type="number" id="s_y" placeholder="Y Coord" class="w-1/3 bg-gray-800 p-2 rounded">
-                    <input type="number" id="s_z" placeholder="Z Coord" class="w-1/3 bg-gray-800 p-2 rounded">
-                </div>
-                
-                <div class="flex gap-2 mt-2">
-                    <button onclick="closeModal('shop-modal')" class="w-1/3 bg-gray-700 text-white py-2 rounded">Zurück</button>
-                    <button onclick="submitShop()" class="w-2/3 bg-mcgreen text-black font-bold py-2 rounded">Shop veröffentlichen</button>
-                </div>
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <input type="number" id="s_x" placeholder="X" class="bg-gray-800 p-2 rounded">
+                <input type="number" id="s_y" placeholder="Y" class="bg-gray-800 p-2 rounded">
+                <input type="number" id="s_z" placeholder="Z" class="bg-gray-800 p-2 rounded">
+            </div>
+            
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('shop-modal')" class="bg-gray-700 px-4 py-2 rounded">Abbrechen</button>
+                <button onclick="submitShop()" class="bg-mcgreen text-black px-4 py-2 font-bold rounded">Erstellen</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: NEUES KOPFGELD -->
-    <div id="bounty-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-        <div class="glass-panel p-6 rounded-2xl w-full max-w-md relative">
-            <button onclick="closeModal('bounty-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark fa-xl"></i></button>
-            <h3 class="font-bold text-xl text-red-500 mb-4">Auftrag ausschreiben</h3>
-            <div class="flex flex-col gap-3">
-                <input type="text" id="b_buyer" placeholder="Dein Name" class="bg-gray-800 p-2 rounded">
-                <input type="text" id="b_wanted" placeholder="Was suchst du? (z.B. 10 Stacks Glas)" class="bg-gray-800 p-2 rounded">
-                <input type="text" id="b_reward" placeholder="Belohnung (z.B. 5 Diamanten)" class="bg-gray-800 p-2 rounded text-yellow-400">
-                <button onclick="submitBounty()" class="w-full bg-red-600 text-white font-bold py-2 rounded mt-2">Auftrag posten</button>
+    <!-- MODAL: SHOP DETAILS (Ausklappbar) -->
+    <div id="shop-details-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+        <div class="glass-panel p-0 rounded-2xl w-full max-w-2xl overflow-hidden relative flex flex-col md:flex-row">
+            <button onclick="closeModal('shop-details-modal')" class="absolute top-4 right-4 bg-black/50 w-8 h-8 rounded-full text-white hover:bg-red-500 z-10"><i class="fa-solid fa-xmark"></i></button>
+            <div class="w-full md:w-1/2 h-64 md:h-auto bg-gray-800 relative">
+                <img id="det-img" src="" class="w-full h-full object-cover">
+            </div>
+            <div class="w-full md:w-1/2 p-6 flex flex-col max-h-[80vh] overflow-y-auto">
+                <h2 id="det-name" class="text-3xl font-bold mb-1"></h2>
+                <p class="text-gray-400 mb-4 text-sm"><i class="fa-solid fa-user"></i> <span id="det-owner"></span> <span id="det-role" class="ml-2"></span></p>
+                <div class="flex gap-2 text-xs mb-6">
+                    <span class="bg-gray-700 px-2 py-1 rounded">Over: <span id="det-coords"></span></span>
+                    <button onclick="openMsgModal()" class="bg-blue-600 px-2 py-1 rounded hover:bg-blue-500"><i class="fa-solid fa-envelope"></i> PM</button>
+                </div>
+                <h3 class="font-bold text-gray-300 mb-2 border-b border-gray-700 pb-1">Angebote</h3>
+                <div id="det-items" class="flex flex-col gap-2 flex-grow"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MESSAGE -->
+    <div id="msg-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm">
+            <h3 class="font-bold text-xl mb-4">Nachricht an <span id="msg-receiver" class="text-mcgreen"></span></h3>
+            <textarea id="msg-content" class="w-full bg-gray-800 p-3 rounded mb-3 h-24" placeholder="Deine Nachricht..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="closeModal('msg-modal')" class="w-1/2 bg-gray-700 py-2 rounded">Abbrechen</button>
+                <button onclick="sendMsg()" class="w-1/2 bg-blue-600 py-2 rounded font-bold">Senden</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentServer = "";
-        let economyChartInstance = null;
+        let token = localStorage.getItem('token');
+        let user = null;
+        let currentRoom = "";
+        let globalShops = [];
+        let chartDataCache = null;
+        let chartInstance = null;
+        let roomSettings = { currency_active: false, currency_name: "" };
 
-        // --- UI & TAB LOGIC ---
-        function switchTab(tabName) {
-            ['marketplace', 'bounties', 'economy'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).classList.remove('active');
-            });
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabName}`).classList.add('active');
-            
-            if(tabName === 'marketplace') loadShops();
-            if(tabName === 'bounties') loadBounties();
-            if(tabName === 'economy') loadChart();
+        // --- AUTH & INIT ---
+        async function authFetch(url, options = {}) {
+            options.headers = { ...options.headers, "token": token, "Content-Type": "application/json" };
+            const res = await fetch(url, options);
+            if(res.status === 401) { logout(); throw new Error("Unauthorized"); }
+            return res;
         }
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        // --- SHOP DYNAMIC ITEMS ---
-        function addShopItemField() {
-            const container = document.getElementById('shop-items-container');
-            const row = document.createElement('div');
-            row.className = "flex gap-2 shop-item-row mt-2";
-            row.innerHTML = `
-                <input type="text" placeholder="Item" class="w-1/2 bg-gray-800 p-2 rounded item-name">
-                <input type="text" placeholder="Preis" class="w-1/3 bg-gray-800 p-2 rounded item-price text-yellow-400">
-                <input type="number" placeholder="Zahl" class="w-1/4 bg-gray-800 p-2 rounded item-num">
-                <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fa-solid fa-trash"></i></button>
-            `;
-            container.appendChild(row);
+        async function init() {
+            if(token) {
+                try {
+                    const res = await authFetch('/api/auth/me');
+                    user = await res.json();
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('server-screen').classList.remove('hidden');
+                    document.getElementById('welcome-text').innerText = `Eingeloggt als ${user.username} [${user.role}]`;
+                    document.getElementById('prof-name').innerText = user.username;
+                    document.getElementById('prof-role').className = `role-${user.role}`;
+                    document.getElementById('prof-role').innerText = user.role;
+                    document.getElementById('prof-bio').value = user.bio || "";
+                    if(user.role === 'Admin') document.getElementById('nav-admin').classList.remove('hidden');
+                } catch(e) { logout(); }
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('server-screen').classList.add('hidden');
+            }
         }
 
-        // --- SERVER LOGIN ---
+        function toggleAuth(type) {
+            document.getElementById('login-form').classList.toggle('hidden', type !== 'login');
+            document.getElementById('register-form').classList.toggle('hidden', type !== 'register');
+        }
+
+        async function register() {
+            const u = document.getElementById('reg_name').value, e = document.getElementById('reg_email').value, p = document.getElementById('reg_pw').value;
+            const res = await fetch('/api/auth/register', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:u, email:e, password:p}) });
+            if(res.ok) { document.getElementById('verify-form').classList.remove('hidden'); document.getElementById('register-form').classList.add('hidden'); alert("Code gesendet! Schau in die Backend-Konsole."); }
+            else alert((await res.json()).detail);
+        }
+
+        async function verify() {
+            const e = document.getElementById('reg_email').value, c = document.getElementById('ver_code').value;
+            const res = await fetch('/api/auth/verify', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:e, code:c}) });
+            if(res.ok) { alert("Verifiziert! Bitte einloggen."); toggleAuth('login'); document.getElementById('verify-form').classList.add('hidden'); }
+        }
+
+        async function login() {
+            const e = document.getElementById('log_email').value, p = document.getElementById('log_pw').value;
+            const res = await fetch('/api/auth/login', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:e, password:p}) });
+            if(res.ok) { const data = await res.json(); token = data.token; localStorage.setItem('token', token); init(); }
+            else alert((await res.json()).detail);
+        }
+
+        function logout() { token = null; user = null; localStorage.removeItem('token'); location.reload(); }
+
+        // --- SERVER ---
         async function createServer() {
-            const res = await fetch('/api/server/new');
-            const data = await res.json();
-            document.getElementById('server-code-input').value = data.server_code;
+            const res = await authFetch('/api/server/new');
+            document.getElementById('server-code-input').value = (await res.json()).server_code;
         }
 
         async function joinServer() {
-            const code = document.getElementById('server-code-input').value.toUpperCase();
-            if (code.length < 3) return;
-            currentServer = code;
-            
-            document.getElementById('login-screen').classList.add('hidden');
+            currentRoom = document.getElementById('server-code-input').value.toUpperCase();
+            if(currentRoom.length < 3) return;
+            document.getElementById('server-screen').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('flex');
-            document.getElementById('display-code').innerText = code;
+            document.getElementById('display-code').innerText = currentRoom;
             
-            loadShops();
+            setInterval(pingRoom, 10000); // Ping alle 10 Sek für Spielerliste
+            pingRoom();
+            switchTab('marketplace');
         }
 
-        // --- API CALLS: SHOPS ---
+        async function pingRoom() {
+            const res = await authFetch(`/api/server/ping/${currentRoom}`);
+            const data = await res.json();
+            
+            roomSettings.currency_active = data.currency_active;
+            roomSettings.currency_name = data.currency_name;
+            
+            if(data.currency_active) {
+                document.getElementById('currency-widget').classList.remove('hidden');
+                document.getElementById('my-balance').innerText = data.balance;
+                document.getElementById('currency-name').innerText = data.currency_name;
+            }
+
+            const list = document.getElementById('player-list');
+            list.innerHTML = data.players.map(p => `<div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-mcgreen"></div><span class="text-gray-200">${p.username}</span> <span class="role-${p.role}">${p.role}</span></div>`).join('');
+        }
+
+        // --- UI & TABS ---
+        function switchTab(tab) {
+            ['marketplace', 'economy', 'messages', 'profile', 'admin'].forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                if(el) el.classList.add('hidden');
+                const btn = document.getElementById(`nav-${t}`);
+                if(btn) btn.classList.remove('active');
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`nav-${tab}`).classList.add('active');
+            
+            if(tab === 'marketplace') loadShops();
+            if(tab === 'economy') loadChart();
+            if(tab === 'messages') loadMessages();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById('dashboard').classList.add('blur-sm'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById('dashboard').classList.remove('blur-sm'); }
+
+        // --- SHOPS ---
+        function addShopItemField() {
+            const div = document.createElement('div');
+            div.className = "flex gap-2 shop-item-row";
+            div.innerHTML = `
+                <input type="text" placeholder="Item Name" class="w-1/2 bg-gray-800 p-2 rounded text-sm i-name">
+                <input type="text" placeholder="Preis Text" class="w-1/3 bg-gray-800 p-2 rounded text-sm i-price">
+                <input type="number" placeholder="Wert (Graph)" class="w-1/4 bg-gray-800 p-2 rounded text-sm i-num" title="Nur Zahlen">
+                <button onclick="this.parentElement.remove()" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+            `;
+            document.getElementById('shop-items-container').appendChild(div);
+        }
+
         async function submitShop() {
-            // Sammle alle Items ein
-            let itemsList = [];
+            let items = [];
             document.querySelectorAll('.shop-item-row').forEach(row => {
-                const name = row.querySelector('.item-name').value;
-                const price = row.querySelector('.item-price').value;
-                const num = parseFloat(row.querySelector('.item-num').value) || 0;
-                if(name && price) itemsList.push({ name, price, price_number: num });
+                const n = row.querySelector('.i-name').value, p = row.querySelector('.i-price').value, num = parseFloat(row.querySelector('.i-num').value)||0;
+                if(n && p) items.push({name: n, price: p, price_number: num});
             });
 
-            if(itemsList.length === 0) return alert("Füge mindestens ein Item hinzu!");
+            // File Upload logic
+            const fileInput = document.getElementById('s_image_file');
+            let imgUrl = "";
+            if(fileInput.files.length > 0) {
+                const fd = new FormData(); fd.append("file", fileInput.files[0]);
+                const upRes = await fetch('/api/upload', { method: 'POST', body: fd, headers: {"token": token} });
+                imgUrl = (await upRes.json()).url;
+            }
 
-            const shopData = {
-                server_code: currentServer,
-                name: document.getElementById('s_name').value,
-                owner: document.getElementById('s_owner').value,
-                image_url: document.getElementById('s_image').value,
-                items: itemsList,
-                x: parseInt(document.getElementById('s_x').value) || 0,
-                y: parseInt(document.getElementById('s_y').value) || 0,
-                z: parseInt(document.getElementById('s_z').value) || 0
+            const payload = {
+                server_code: currentRoom, name: document.getElementById('s_name').value, image_url: imgUrl, items: items,
+                x: parseInt(document.getElementById('s_x').value)||0, y: parseInt(document.getElementById('s_y').value)||0, z: parseInt(document.getElementById('s_z').value)||0
             };
 
-            await fetch('/api/shops/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(shopData) });
-            closeModal('shop-modal');
-            
-            // Felder leeren
-            document.getElementById('s_name').value = ""; document.getElementById('s_image').value = "";
-            loadShops();
+            await authFetch('/api/shops/add', { method: 'POST', body: JSON.stringify(payload) });
+            closeModal('shop-modal'); loadShops();
         }
 
         async function loadShops() {
-            let url = `/api/shops/${currentServer}`;
-            const px = document.getElementById('my_x').value, py = document.getElementById('my_y').value, pz = document.getElementById('my_z').value;
-            if (px && py && pz) url += `?player_x=${px}&player_y=${py}&player_z=${pz}`;
+            const res = await authFetch(`/api/shops/${currentRoom}`);
+            globalShops = await res.json();
+            renderShops(globalShops);
+        }
 
-            const res = await fetch(url);
-            const shops = await res.json();
+        function renderShops(shops) {
             const grid = document.getElementById('shops-grid');
             grid.innerHTML = "";
-
-            shops.forEach(shop => {
-                // Bild generieren (Wenn keins da, nimm ein Platzhalter-Bild)
-                const imgUrl = shop.image_url || 'https://images.unsplash.com/photo-1606167668584-d5eb9236dcd2?q=80&w=300&auto=format&fit=crop';
-                let distanceBadge = shop.distance !== undefined ? `<span class="absolute top-2 right-2 bg-blue-600 text-xs px-2 py-1 rounded shadow"><i class="fa-solid fa-route"></i> ${shop.distance}m</span>` : '';
-                
-                // Item Liste bauen
-                let itemsHTML = shop.items.map(i => `
-                    <div class="flex justify-between items-center bg-gray-800 p-2 mb-1 rounded">
-                        <span class="text-sm font-bold text-gray-200">${i.name}</span>
-                        <span class="text-sm font-bold text-yellow-400">${i.price}</span>
-                    </div>
-                `).join('');
-
+            shops.forEach(s => {
+                const img = s.image_url || 'https://images.unsplash.com/photo-1606167668584-d5eb9236dcd2?q=80&w=300';
                 grid.innerHTML += `
-                    <div class="glass-panel rounded-xl overflow-hidden border border-gray-700 hover:border-mcgreen transition flex flex-col h-full relative">
-                        ${distanceBadge}
-                        <div class="h-32 w-full overflow-hidden">
-                            <img src="${imgUrl}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-4 flex-grow flex flex-col">
-                            <h3 class="text-lg font-bold text-white">${shop.name}</h3>
-                            <p class="text-xs text-gray-400 mb-3"><i class="fa-solid fa-user"></i> by ${shop.owner}</p>
-                            
-                            <div class="item-list flex-grow overflow-y-auto max-h-32 mb-3 pr-1">
-                                ${itemsHTML}
+                    <div class="glass-panel rounded-xl overflow-hidden cursor-pointer hover:border-mcgreen transition group relative" onclick="openShopDetails(${s.id})">
+                        <div class="h-32 overflow-hidden relative">
+                            <img src="${img}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3 pt-10">
+                                <h3 class="text-lg font-bold text-white leading-tight">${s.name}</h3>
                             </div>
-                            
-                            <div class="mt-auto grid grid-cols-2 gap-2 text-[10px]">
-                                <div class="bg-gray-900 p-1.5 rounded text-center text-gray-400 border border-gray-700">Over: ${shop.x}, ${shop.z}</div>
-                                <div class="bg-red-950 p-1.5 rounded text-center text-red-400 border border-red-900">Nether: ${shop.nether_coords}</div>
+                        </div>
+                        <div class="p-4 pt-2">
+                            <p class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-user"></i> ${s.owner} <span class="role-${s.owner_role}">${s.owner_role}</span></p>
+                            <div class="text-sm text-gray-300">
+                                ${s.items.slice(0, 2).map(i => `<div class="flex justify-between border-b border-gray-700 py-1"><span>${i.name}</span><span class="text-yellow-400">${i.price}</span></div>`).join('')}
+                                ${s.items.length > 2 ? `<div class="text-center text-xs text-blue-400 mt-2">+ ${s.items.length - 2} weitere Items</div>` : ''}
                             </div>
                         </div>
                     </div>
@@ -287,80 +398,137 @@
             });
         }
 
-        // --- API CALLS: BOUNTIES ---
-        async function submitBounty() {
-            const b = {
-                server_code: currentServer, buyer: document.getElementById('b_buyer').value,
-                item_wanted: document.getElementById('b_wanted').value, reward: document.getElementById('b_reward').value
-            };
-            await fetch('/api/bounties/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(b) });
-            closeModal('bounty-modal');
-            loadBounties();
+        function filterShops() {
+            const term = document.getElementById('search-bar').value.toLowerCase();
+            const filtered = globalShops.filter(s => s.name.toLowerCase().includes(term) || s.items.some(i => i.name.toLowerCase().includes(term)));
+            renderShops(filtered);
         }
 
-        async function loadBounties() {
-            const res = await fetch(`/api/bounties/${currentServer}`);
-            const data = await res.json();
-            const list = document.getElementById('bounties-list');
-            list.innerHTML = "";
-            data.forEach(b => {
-                list.innerHTML += `
-                    <div class="glass-panel p-4 rounded-lg flex justify-between items-center border-l-4 border-l-red-500">
-                        <div>
-                            <p class="text-xs text-gray-400">Gesucht von: ${b.buyer}</p>
-                            <h4 class="font-bold text-lg text-white">${b.item_wanted}</h4>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xs text-gray-400">Belohnung</p>
-                            <p class="font-bold text-yellow-400 text-lg">${b.reward}</p>
-                        </div>
-                    </div>
-                `;
-            });
+        function openShopDetails(id) {
+            const s = globalShops.find(x => x.id === id);
+            if(!s) return;
+            document.getElementById('det-img').src = s.image_url || 'https://images.unsplash.com/photo-1606167668584-d5eb9236dcd2?q=80&w=800';
+            document.getElementById('det-name').innerText = s.name;
+            document.getElementById('det-owner').innerText = s.owner;
+            document.getElementById('det-role').className = `role-${s.owner_role}`;
+            document.getElementById('det-role').innerText = s.owner_role;
+            document.getElementById('det-coords').innerText = `${s.x}, ${s.y}, ${s.z}`;
+            
+            // Setup MSG Target
+            document.getElementById('msg-receiver').innerText = s.owner;
+            
+            // Render Items + Buy Button if custom currency active
+            let itemsHtml = s.items.map(i => {
+                let buyBtn = "";
+                if(roomSettings.currency_active && i.price_number > 0 && s.owner_id !== user.id) {
+                    buyBtn = `<button onclick="buyItem(${s.id}, '${i.name}', ${i.price_number})" class="bg-yellow-600 text-xs px-2 py-1 rounded text-white font-bold ml-2">Kaufen (${i.price_number})</button>`;
+                }
+                return `<div class="flex justify-between items-center bg-gray-800 p-3 rounded">
+                            <span class="font-bold">${i.name}</span>
+                            <div class="flex items-center"><span class="text-yellow-400 font-mono">${i.price}</span>${buyBtn}</div>
+                        </div>`;
+            }).join('');
+            
+            // Delete Button for owner/admin
+            if(s.owner_id === user.id || user.role === 'Admin') {
+                itemsHtml += `<button onclick="deleteShop(${s.id})" class="mt-4 bg-red-900/50 text-red-400 border border-red-800 w-full py-2 rounded hover:bg-red-800 hover:text-white transition"><i class="fa-solid fa-trash"></i> Shop Löschen</button>`;
+            }
+
+            document.getElementById('det-items').innerHTML = itemsHtml;
+            openModal('shop-details-modal');
         }
 
-        // --- API CALLS: ECONOMY GRAPH ---
+        async function deleteShop(id) {
+            if(!confirm("Shop wirklich löschen?")) return;
+            await authFetch(`/api/shops/${id}`, { method: 'DELETE' });
+            closeModal('shop-details-modal'); loadShops();
+        }
+
+        async function buyItem(shopId, itemName, cost) {
+            if(!confirm(`Willst du ${itemName} für ${cost} ${roomSettings.currency_name} kaufen?`)) return;
+            try {
+                const res = await authFetch(`/api/buy/${currentRoom}?shop_id=${shopId}&item_name=${itemName}&cost=${cost}`, {method: 'POST'});
+                if(res.ok) { alert("Erfolgreich gekauft!"); pingRoom(); }
+                else alert((await res.json()).detail);
+            } catch(e) {}
+        }
+
+        // --- MESSAGES ---
+        function openMsgModal() { closeModal('shop-details-modal'); openModal('msg-modal'); }
+        async function sendMsg() {
+            const rec = document.getElementById('msg-receiver').innerText;
+            const content = document.getElementById('msg-content').value;
+            await authFetch('/api/messages/send', { method: 'POST', body: JSON.stringify({receiver_name: rec, content: content}) });
+            alert("Gesendet!"); closeModal('msg-modal'); document.getElementById('msg-content').value = "";
+        }
+async function loadMessages() {
+            const res = await authFetch('/api/messages');
+            const msgs = await res.json();
+            document.getElementById('messages-list').innerHTML = msgs.map(m => `
+                <div class="bg-gray-800 p-4 rounded-lg border-l-4 border-blue-500">
+                    <div class="flex justify-between text-xs text-gray-400 mb-2"><span>Von: <strong class="text-white">${m.sender}</strong></span><span>${m.time}</span></div>
+                    <p>${m.content}</p>
+                </div>
+            `).join('') || '<p class="text-gray-500">Keine Nachrichten vorhanden.</p>';
+        }
+
+        // --- PROFILE ---
+        async function updateProfile() {
+            await authFetch('/api/profile/update', { method: 'POST', body: JSON.stringify({bio: document.getElementById('prof-bio').value}) });
+            alert("Gespeichert!");
+        }
+
+        // --- CHART ---
         async function loadChart() {
-            const res = await fetch(`/api/economy/chart/${currentServer}`);
-            const data = await res.json();
+            const res = await authFetch(`/api/economy/chart/${currentRoom}`);
+            chartDataCache = await res.json();
             
+            // Dropdown füllen
+            const select = document.getElementById('chart-item-select');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="all">Alle Items</option>';
+            Object.keys(chartDataCache).forEach(k => { select.innerHTML += `<option value="${k}">${k}</option>`; });
+            select.value = currentVal === "" ? "all" : currentVal;
+            
+            updateChartDisplay();
+        }
+
+        function updateChartDisplay() {
+            if(chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('economyChart').getContext('2d');
+            const selectedItem = document.getElementById('chart-item-select').value;
             
-            // Wenn der Graph schon existiert, löschen, bevor wir ihn neu zeichnen
-            if(economyChartInstance) economyChartInstance.destroy();
+            let datasets = [];
+            let allLabels = new Set();
+            const colors = ['#39ff14', '#3b82f6', '#ef4444', '#f59e0b', '#a855f7', '#ec4899'];
+            let colorIdx = 0;
 
-            // Bunte Farben für verschiedene Items generieren
-            const colors = ['#39ff14', '#3b82f6', '#ef4444', '#f59e0b', '#a855f7'];
-            let colorIndex = 0;
+            for(let key in chartDataCache) {
+                if(selectedItem !== 'all' && key !== selectedItem) continue;
+                chartDataCache[key].times.forEach(t => allLabels.add(t.split(' ')[0])); // Nur Datum
+                datasets.push({
+                    label: key.toUpperCase(),
+                    data: chartDataCache[key].prices,
+                    borderColor: colors[colorIdx % colors.length],
+                    backgroundColor: colors[colorIdx % colors.length] + '22',
+                    tension: 0.3, fill: true
+                });
+                colorIdx++;
+            }
 
-            const chartDatasets = Object.keys(data).map(itemName => {
-                let col = colors[colorIndex % colors.length]; colorIndex++;
-                return {
-                    label: itemName.toUpperCase(),
-                    data: data[itemName].prices,
-                    borderColor: col,
-                    backgroundColor: col + '33', // Leicht transparent
-                    tension: 0.4,
-                    fill: true
-                };
-            });
-
-            // Wir nehmen die Zeitstempel des ersten Items als X-Achse
-            const labels = Object.keys(data).length > 0 ? data[Object.keys(data)[0]].times.map(t => t.split(' ')[0]) : [];
-
-            economyChartInstance = new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: chartDatasets },
+                data: { labels: Array.from(allLabels).sort(), datasets: datasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: 'white' } } },
-                    scales: {
-                        x: { ticks: { color: '#aaa' }, grid: { color: '#333' } },
-                        y: { ticks: { color: '#aaa' }, grid: { color: '#333' } }
-                    }
+                    plugins: { tooltip: { mode: 'index', intersect: false }, legend: { labels: { color: 'white' } } },
+                    scales: { x: { grid: { color: '#333' } }, y: { grid: { color: '#333' }, beginAtZero: true } }
                 }
             });
         }
+
+        // Start
+        init();
     </script>
 </body>
 </html>
