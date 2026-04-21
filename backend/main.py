@@ -166,7 +166,8 @@ async def ping_server(server_code: str, user: dict = Depends(get_current_user)):
     
     # Hole Währungs-Info des Raumes und den Kontostand
     c = conn.cursor()
-    c.execute("SELECT currency_name, is_currency_active FROM rooms WHERE code=?", (server_code,))
+    # HIER IST DIE ÄNDERUNG (owner_id hinzugefügt):
+    c.execute("SELECT currency_name, is_currency_active, owner_id FROM rooms WHERE code=?", (server_code,))
     room_info = c.fetchone()
     c.execute("SELECT balance FROM room_players WHERE user_id=? AND room_code=?", (user["id"], server_code))
     balance = c.fetchone()[0]
@@ -179,7 +180,33 @@ async def ping_server(server_code: str, user: dict = Depends(get_current_user)):
     conn.commit()
     conn.close()
     
-    return {"players": players, "currency_active": bool(room_info[1] if room_info else 0), "currency_name": (room_info[0] if room_info else ""), "balance": balance}
+    # HIER IST DIE ÄNDERUNG (owner_id wird mitgeschickt):
+    return {
+        "players": players, 
+        "currency_active": bool(room_info[1] if room_info else 0), 
+        "currency_name": (room_info[0] if room_info else ""), 
+        "balance": balance,
+        "owner_id": (room_info[2] if room_info else None)
+    }
+
+class RoomSettingsUpdate(BaseModel):
+    is_currency_active: bool
+    currency_name: str
+
+@app.post("/api/server/settings/{server_code}")
+async def update_room_settings(server_code: str, settings: RoomSettingsUpdate, user: dict = Depends(get_current_user)):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT owner_id FROM rooms WHERE code=?", (server_code,))
+    room = c.fetchone()
+    if not room: raise HTTPException(404, "Raum nicht gefunden")
+    if room[0] != user["id"] and user["role"] != "Admin": raise HTTPException(403, "Nur der Besitzer kann das ändern.")
+
+    c.execute("UPDATE rooms SET is_currency_active=?, currency_name=? WHERE code=?",
+              (1 if settings.is_currency_active else 0, settings.currency_name, server_code))
+    conn.commit()
+    conn.close()
+    return {"status": "updated"}
 
 # --- API: SHOPS ---
 @app.post("/api/shops/add")

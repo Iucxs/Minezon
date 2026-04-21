@@ -72,6 +72,7 @@
             <button onclick="switchTab('messages')" id="nav-messages" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-envelope w-6"></i> Postfach</button>
             <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn text-left px-4 py-3 rounded text-gray-300 hover:bg-gray-800"><i class="fa-solid fa-user w-6"></i> Profil</button>
             <button onclick="switchTab('admin')" id="nav-admin" class="hidden nav-btn text-left px-4 py-3 rounded text-red-400 hover:bg-gray-800"><i class="fa-solid fa-hammer w-6"></i> Admin</button>
+            <button onclick="switchTab('roomsettings')" id="nav-roomsettings" class="hidden nav-btn text-left px-4 py-3 rounded text-yellow-400 hover:bg-gray-800"><i class="fa-solid fa-gear w-6"></i> Raum-Settings</button>
 
             <!-- Custom Currency Info -->
             <div id="currency-widget" class="hidden mt-4 bg-yellow-900/30 border border-yellow-700 p-3 rounded-lg text-center">
@@ -147,6 +148,23 @@
                             <i class="fa-solid fa-server fa-xl"></i> Alle Räume verwalten
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- RAUM SETTINGS -->
+            <div id="view-roomsettings" class="hidden flex flex-col h-full">
+                <h2 class="text-2xl font-bold text-yellow-500 mb-4"><i class="fa-solid fa-gear"></i> Raum Einstellungen</h2>
+                <div class="glass-panel p-6 rounded-xl border border-yellow-900/50 flex flex-col gap-4 max-w-md">
+                    <p class="text-sm text-gray-400">Hier kannst du das Währungssystem für diesen Raum aktivieren.</p>
+
+                    <div class="flex items-center gap-3 mt-2">
+                        <input type="checkbox" id="set_curr_active" class="w-5 h-5 accent-mcgreen">
+                        <label class="font-bold">Eigene Währung aktivieren</label>
+                    </div>
+
+                    <input type="text" id="set_curr_name" placeholder="Name der Währung (z.B. Coins, Smaragde)" class="bg-gray-800 p-3 rounded w-full">
+
+                    <button onclick="saveRoomSettings()" class="bg-yellow-600 text-white font-bold py-2 rounded mt-2 hover:bg-yellow-500">Speichern</button>
                 </div>
             </div>
             
@@ -294,25 +312,44 @@
         }
 
         async function pingRoom() {
-            const res = await authFetch(`/api/server/ping/${currentRoom}`);
-            const data = await res.json();
-            
-            roomSettings.currency_active = data.currency_active;
-            roomSettings.currency_name = data.currency_name;
-            
-            if(data.currency_active) {
-                document.getElementById('currency-widget').classList.remove('hidden');
-                document.getElementById('my-balance').innerText = data.balance;
-                document.getElementById('currency-name').innerText = data.currency_name;
-            }
+                    const res = await authFetch(`/api/server/ping/${currentRoom}`);
+                    const data = await res.json();
+                    
+                    roomSettings.currency_active = data.currency_active;
+                    roomSettings.currency_name = data.currency_name;
+                    
+                    // Wenn der User der Raum-Besitzer (oder Admin) ist, Einstellungs-Button zeigen
+                    if(user.id === data.owner_id || user.role === 'Admin') {
+                        document.getElementById('nav-roomsettings').classList.remove('hidden');
+                    }
+                    
+                    if(data.currency_active) {
+                        document.getElementById('currency-widget').classList.remove('hidden');
+                        document.getElementById('my-balance').innerText = data.balance;
+                        document.getElementById('currency-name').innerText = data.currency_name;
+                    } else {
+                        document.getElementById('currency-widget').classList.add('hidden');
+                    }
 
-            const list = document.getElementById('player-list');
-            list.innerHTML = data.players.map(p => `<div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-mcgreen"></div><span class="text-gray-200">${p.username}</span> <span class="role-${p.role}">${p.role}</span></div>`).join('');
-        }
+                    const list = document.getElementById('player-list');
+                    list.innerHTML = data.players.map(p => `<div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-mcgreen"></div><span class="text-gray-200">${p.username}</span> <span class="role-${p.role}">${p.role}</span></div>`).join('');
+                }
+
+        async function saveRoomSettings() {
+                    const active = document.getElementById('set_curr_active').checked;
+                    const name = document.getElementById('set_curr_name').value;
+                    const res = await authFetch(`/api/server/settings/${currentRoom}`, { 
+                        method: 'POST', body: JSON.stringify({is_currency_active: active, currency_name: name}) 
+                    });
+                    if(res.ok) {
+                        alert("Raum-Einstellungen gespeichert!");
+                        pingRoom(); // Lädt sofort die neuen Daten (Guthaben-Anzeige etc.)
+                    }
+                }
 
         // --- UI & TABS ---
         function switchTab(tab) {
-            ['marketplace', 'economy', 'messages', 'profile', 'admin'].forEach(t => {
+            ['marketplace', 'economy', 'messages', 'profile', 'admin', 'roomsettings'].forEach(t => {
                 const el = document.getElementById(`view-${t}`);
                 if(el) el.classList.add('hidden');
                 const btn = document.getElementById(`nav-${t}`);
